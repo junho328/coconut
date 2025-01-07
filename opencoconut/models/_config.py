@@ -9,13 +9,14 @@ from transformers.utils.hub import PushToHubMixin, cached_file
 @dataclass
 class CoconutConfig(PushToHubMixin):
     stages: int = field(default=4)
-    continuous_thoughts: int = field(default=2)
+    continuous_thoughts: int = field(default=1) # hyperparameter controlling the number of latent thoughts replacing a single language reasoning step.
+
     pad_token_id: int = field(default=None)
     bot: str = field(default="<bot>")
     eot: str = field(default="<eot>")
     bot_id: int = field(default=None)
     eot_id: int = field(default=None)
-    mix_prob: float = field(default=0.3)
+    mix_prob: float = field(default=0.3) # to prevent forgetting earlier stage, mix the previous stage's datas.
 
     @classmethod
     def from_dict(cls, config: Dict = {}):

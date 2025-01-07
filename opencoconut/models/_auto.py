@@ -4,6 +4,7 @@ from opencoconut.models import *
 
 COCONUT_CAUSAL_LM_MODEL_MAP = {
     "qwen2": CoconutQwen2ForCausalLM,
+    "llama": CoconutLlamaForCausalLM,
 }
 
 
