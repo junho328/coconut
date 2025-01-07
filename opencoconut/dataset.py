@@ -34,6 +34,7 @@ class CoTDataset(Dataset):
     def __getitem__(self, idx):
         item = self.dataset[idx]
 
+        # TODO: This part is weird. Don't just replace the original stage to other stage, but mix the some portion of previous stage's data
         # Decide whether to use the current stage or a different stage
         if random.random() < self.coconut_config.mix_prob and self.current_stage != 0:
             # Choose a random stage (excluding the current stage, which is self.k)
@@ -121,6 +122,7 @@ def split_sequences(
     latent_labels = []
     language_labels = []
 
+    # TODO: Need to fix. language_ids should be 'after' the <eot> token
     for i in range(batch_size):
         # Find positions of delimiter tokens in input_ids
         bot_positions = (input_ids[i] == coconut_config.bot_id).nonzero(as_tuple=True)[
@@ -137,15 +139,18 @@ def split_sequences(
 
             # Split input_ids
             latent_ids.append(input_ids[i][: bot_pos + 1])
-            language_ids.append(input_ids[i][eot_pos:])
+            # language_ids.append(input_ids[i][eot_pos:])
+            language_ids.append(input_ids[i][eot_pos+1:])
 
             # Split attention_mask
             latent_mask.append(attention_mask[i][: bot_pos + 1])
-            language_mask.append(attention_mask[i][eot_pos:])
+            # language_mask.append(attention_mask[i][eot_pos:])
+            language_mask.append(attention_mask[i][eot_pos+1:])
 
             # Split labels
             latent_labels.append(labels[i][: bot_pos + 1])
-            language_labels.append(labels[i][eot_pos:])
+            # language_labels.append(labels[i][eot_pos:])
+            language_labels.append(labels[i][eot_pos+1:])
 
     # Pad sequences
     latent_ids = torch.nn.utils.rnn.pad_sequence(
@@ -184,9 +189,17 @@ if __name__ == "__main__":
     model_name = "Qwen/Qwen2.5-0.5B"
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.bos_token = "<|im_start|>"
-    tokenizer.eos_token = "<|im_end|>"
-    tokenizer.pad_token = "<|endoftext|>"
+
+    if model_name == "Qwen/Qwen2.5-0.5B":
+        tokenizer.bos_token = "<|im_start|>"
+        tokenizer.eos_token = "<|im_end|>"
+        tokenizer.pad_token = "<|endoftext|>"
+    elif model_name == "meta-llama/Llama-3.2-1B":
+        tokenizer.bos_token = "<|begin_of_text|>"
+        tokenizer.eos_token = "<|end_of_text|>"
+        tokenizer.pad_token = tokenizer.eos_token
+    else:
+        raise ValueError(f"Unknown model name: {model_name}")
 
     config = CoconutConfig.from_tokenizer(
         tokenizer,
